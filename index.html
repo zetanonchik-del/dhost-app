@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Образовательная платформа</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Селектор уроков -->
+    <header class="top-nav">
+      <select id="lessonPicker" class="custom-select"></select>
+    </header>
+
+    <!-- Полноэкранный плеер в стиле YouTube -->
+    <div class="player-wrapper">
+      <video id="videoPlayer" controls playsinline controlsList="nodownload" preload="metadata"></video>
+      <div class="video-bar">
+        <button id="prevPartBtn" class="pill-btn">◀ Предыдущая</button>
+        <span id="partTitle" class="badge">Часть 1</span>
+        <button id="nextPartBtn" class="pill-btn">Следующая ▶</button>
+      </div>
+    </div>
+
+    <div class="lesson-header">
+      <h1 id="lessonHeading">Загрузка данных...</h1>
+    </div>
+
+    <!-- Вкладки материалов -->
+    <nav class="tabs-nav">
+      <button class="tab-item active" data-tab="tab-hw">📝 Домашка</button>
+      <button class="tab-item" data-tab="tab-pdf">📄 Конспект PDF</button>
+      <button class="tab-item" data-tab="tab-zip">📦 Исходный код</button>
+    </nav>
+
+    <!-- Экраны вкладок -->
+    <main class="tabs-body">
+      <!-- Вкладка 1: Домашка -->
+      <section id="tab-hw" class="tab-view active">
+        <div id="hwContent" class="text-card">Загрузка задания...</div>
+        <button id="btnSendHw" class="action-btn">💬 Отправить материалы ДЗ в чат</button>
+      </section>
+
+      <!-- Вкладка 2: PDF -->
+      <section id="tab-pdf" class="tab-view">
+        <div class="pdf-wrapper">
+          <canvas id="pdfCanvas"></canvas>
+        </div>
+        <div class="pdf-bar">
+          <button id="pdfPrevPage" class="pill-btn">◀</button>
+          <span class="badge"><span id="pdfCur">1</span> / <span id="pdfTotal">1</span></span>
+          <button id="pdfNextPage" class="pill-btn">▶</button>
+        </div>
+        <button id="btnSendPdf" class="action-btn red-btn">💬 Отправить PDF в чат</button>
+      </section>
+
+      <!-- Вкладка 3: ZIP -->
+      <section id="tab-zip" class="tab-view">
+        <div class="text-card">Архив исходного кода и проекта к текущему уроку (.ZIP).</div>
+        <button id="btnSendZip" class="action-btn green-btn">📦 Отправить ZIP в чат</button>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
