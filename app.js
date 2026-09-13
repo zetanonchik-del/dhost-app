@@ -4,15 +4,16 @@ if (tg) {
   tg.expand();
 }
 
-// Ваш актуальный URL туннеля
+// Актуальный адрес туннеля Cloudflare
 const API_BASE = "https://optimization-idle-contacts-developed.trycloudflare.com/api";
 
 let lessonsData = [];
 let currentLessonIdx = 0;
 let currentVideoIdx = 0;
+let currentActiveVideoId = null;
 let activeTab = "hw";
 
-// Элементы интерфейса
+// DOM элементы
 const lessonPicker = document.getElementById("lessonPicker");
 const videoPlayer = document.getElementById("videoPlayer");
 const lessonHeading = document.getElementById("lessonHeading");
@@ -27,21 +28,20 @@ const tabHw = document.querySelector('[data-tab="hw"]');
 const tabPdf = document.querySelector('[data-tab="pdf"]');
 const tabZip = document.querySelector('[data-tab="zip"]');
 
-// Универсальное красивое уведомление без адреса сайта
-function showMessage(text) {
+// Нативное уведомление Telegram (без надписи браузера и адреса сайта)
+function notify(msg) {
   if (tg && tg.showAlert) {
-    tg.showAlert(text);
+    tg.showAlert(msg);
   } else {
-    // Если открыто в обычном браузере без Telegram
-    console.log(text);
+    alert(msg);
   }
 }
 
-// Инициализация данных
+// Инициализация при открытии
 async function init() {
   try {
     const res = await fetch(`${API_BASE}/lessons`);
-    if (!res.ok) throw new Error("Ошибка загрузки");
+    if (!res.ok) throw new Error("Network response was not ok");
     lessonsData = await res.json();
 
     lessonPicker.innerHTML = "";
@@ -60,7 +60,7 @@ async function init() {
       selectLesson(0);
     }
   } catch (err) {
-    console.error(err);
+    console.error("Ошибка загрузки данных:", err);
     if (lessonHeading) lessonHeading.textContent = "Ошибка загрузки данных с сервера";
   }
 }
@@ -73,39 +73,39 @@ function selectLesson(idx) {
 
   lessonHeading.textContent = `Урок ${lesson.lessonNumber}. ${lesson.title}`;
 
-  // 1. Управление вкладками: скрываем, если файлов нет
+  // 1. Скрываем вкладки, если файлов нет
   if (tabPdf) tabPdf.style.display = lesson.hasPdf ? "inline-flex" : "none";
   if (tabZip) tabZip.style.display = lesson.hasZip ? "inline-flex" : "none";
 
-  // Если были на вкладке, которой нет у этого урока, переходим на Домашку
+  // 2. Если вкладка была на скрытом файле, переключаем на домашку
   if ((activeTab === "pdf" && !lesson.hasPdf) || (activeTab === "zip" && !lesson.hasZip)) {
     switchTab("hw");
   } else {
     updateTabContent();
   }
 
-  // 2. Управление частями видео
+  // 3. Обновляем видео и кнопки частей
   updateVideoControls(lesson);
 }
 
-// Обновление контролов видео
+// Управление видео и частями
 function updateVideoControls(lesson) {
   const videos = lesson.videos || [];
   if (videos.length === 0) {
     videoPlayer.removeAttribute("src");
-    videoPlayer.poster = "";
     partTitle.textContent = "Нет видео";
     prevPartBtn.style.display = "none";
     nextPartBtn.style.display = "none";
+    currentActiveVideoId = null;
     return;
   }
 
-  // Показываем кнопки переключения, только если частей больше 1
+  // Показываем кнопки переключения, только если частей больше одной
   if (videos.length > 1) {
     prevPartBtn.style.display = "inline-block";
     nextPartBtn.style.display = "inline-block";
-    prevPartBtn.disabled = currentVideoIdx === 0;
-    nextPartBtn.disabled = currentVideoIdx === videos.length - 1;
+    prevPartBtn.disabled = (currentVideoIdx === 0);
+    nextPartBtn.disabled = (currentVideoIdx === videos.length - 1);
   } else {
     prevPartBtn.style.display = "none";
     nextPartBtn.style.display = "none";
@@ -113,10 +113,11 @@ function updateVideoControls(lesson) {
 
   partTitle.textContent = `Часть ${currentVideoIdx + 1}/${videos.length}`;
   const v = videos[currentVideoIdx];
+  currentActiveVideoId = v.id;
   videoPlayer.src = `${API_BASE}/video/stream/${v.id}`;
 }
 
-// Переключение частей видео
+// Кнопка: Предыдущая часть
 if (prevPartBtn) {
   prevPartBtn.onclick = () => {
     if (currentVideoIdx > 0) {
@@ -126,6 +127,7 @@ if (prevPartBtn) {
   };
 }
 
+// Кнопка: Следующая часть
 if (nextPartBtn) {
   nextPartBtn.onclick = () => {
     const vids = lessonsData[currentLessonIdx].videos || [];
@@ -140,7 +142,7 @@ if (nextPartBtn) {
 function switchTab(tabName) {
   activeTab = tabName;
   [tabHw, tabPdf, tabZip].forEach(t => t && t.classList.remove("active"));
-  
+
   if (tabName === "hw" && tabHw) tabHw.classList.add("active");
   if (tabName === "pdf" && tabPdf) tabPdf.classList.add("active");
   if (tabName === "zip" && tabZip) tabZip.classList.add("active");
@@ -148,7 +150,7 @@ function switchTab(tabName) {
   updateTabContent();
 }
 
-// Отображение контента и кнопки действия
+// Обновление описания и кнопок
 function updateTabContent() {
   const lesson = lessonsData[currentLessonIdx];
   if (!lesson) return;
@@ -156,14 +158,14 @@ function updateTabContent() {
   if (activeTab === "hw") {
     hwContent.textContent = lesson.homeworkText ? lesson.homeworkText : "Письменное задание к этому уроку отсутствует.";
     
-    // Скрываем кнопку, если к домашке не прикреплен файл
     if (sendActionBtn) {
+      // Показываем кнопку отправки ДЗ ТОЛЬКО если есть файл домашки
       if (lesson.hwFileId) {
         sendActionBtn.style.display = "block";
         sendActionBtn.textContent = "💬 Отправить файл ДЗ в чат";
         sendActionBtn.className = "action-btn btn-blue";
       } else {
-        sendActionBtn.style.display = "none"; // Нет файла - нет кнопки!
+        sendActionBtn.style.display = "none";
       }
     }
   } else if (activeTab === "pdf") {
@@ -183,12 +185,11 @@ function updateTabContent() {
   }
 }
 
-// Слушатели на вкладки
 if (tabHw) tabHw.onclick = () => switchTab("hw");
 if (tabPdf) tabPdf.onclick = () => switchTab("pdf");
 if (tabZip) tabZip.onclick = () => switchTab("zip");
 
-// Отправка файла в чат
+// Отправка файла в Telegram-чат
 if (sendActionBtn) {
   sendActionBtn.onclick = async () => {
     const lesson = lessonsData[currentLessonIdx];
@@ -199,33 +200,44 @@ if (sendActionBtn) {
     if (activeTab === "zip") fileIdToSend = lesson.zipId;
 
     if (!fileIdToSend) {
-      showMessage("Файл к данному уроку не прикреплён.");
+      notify("Файл к данному уроку не прикреплен.");
       return;
     }
 
     const uid = tg?.initDataUnsafe?.user?.id;
     if (!uid) {
-      showMessage("Не удалось определить ID пользователя Telegram.");
+      notify("Пожалуйста, откройте приложение внутри Telegram.");
       return;
     }
 
     sendActionBtn.disabled = true;
-    sendActionBtn.textContent = "Отправка...";
+    const oldText = sendActionBtn.textContent;
+    sendActionBtn.textContent = "Отправка в чат...";
 
     try {
-      const res = await fetch(`${API_BASE}/send-to-chat?userId=${uid}&fileId=${fileIdToSend}`, { method: "POST" });
+      const res = await fetch(`${API_BASE}/send-to-chat?userId=${uid}&fileId=${fileIdToSend}`, {
+        method: "POST"
+      });
       if (res.ok) {
-        showMessage("Файл отправлен в диалог с ботом!");
+        notify("Файл успешно отправлен в диалог с ботом!");
       } else {
-        showMessage("Ошибка при отправке файла.");
+        notify("Не удалось отправить файл. Попробуйте позже.");
       }
     } catch (e) {
-      showMessage("Сетевая ошибка при отправке.");
+      notify("Сетевая ошибка при отправке.");
     } finally {
       sendActionBtn.disabled = false;
-      updateTabContent();
+      sendActionBtn.textContent = oldText;
     }
   };
 }
 
+// Автоудаление видео из кэша при закрытии Mini App
+window.addEventListener("pagehide", () => {
+  if (currentActiveVideoId) {
+    navigator.sendBeacon(`${API_BASE}/video/cleanup?fileId=${currentActiveVideoId}`);
+  }
+});
+
+// Запуск
 init();
