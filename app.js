@@ -5,7 +5,7 @@ if (tg) {
 }
 
 // Укажите URL, выданный утилитой cloudflared
-const API_BASE = "https://encyclopedia-lower-salon-washing.trycloudflare.com";
+const API_BASE = "https://optimization-idle-contacts-developed.trycloudflare.com";
 
 let lessonsData = [];
 let currentLessonIdx = 0;
