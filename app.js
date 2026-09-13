@@ -5,7 +5,7 @@ if (tg) {
 }
 
 // Укажите URL, выданный утилитой cloudflared
-const API_BASE = "https://optimization-idle-contacts-developed.trycloudflare.com";
+const API_BASE = "https://optimization-idle-contacts-developed.trycloudflare.com/api";
 
 let lessonsData = [];
 let currentLessonIdx = 0;
