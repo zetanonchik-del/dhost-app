@@ -5,27 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Образовательная платформа</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=20">
 </head>
 <body>
   <div class="app-container">
-    <!-- Блок выбора месяца и урока -->
+    <!-- Селекторы модуля и урока -->
     <header class="controls-header">
       <div class="selector-row">
-        <div class="select-col month-col">
-          <label for="monthPicker">Модуль:</label>
-          <select id="monthPicker" class="custom-select"></select>
+        <!-- Кастомный выбор месяца -->
+        <div class="dropdown-wrapper month-box" id="monthDropdownWrapper">
+          <label>Модуль:</label>
+          <div class="dropdown-btn" id="monthDropdownBtn">
+            <span id="selectedMonthText">Модуль 1</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="dropdown-menu" id="monthDropdownMenu"></div>
         </div>
-        <div class="select-col lesson-col">
-          <label for="lessonPicker">Урок:</label>
-          <select id="lessonPicker" class="custom-select"></select>
+
+        <!-- Кастомный выбор урока -->
+        <div class="dropdown-wrapper lesson-box" id="lessonDropdownWrapper">
+          <label>Урок:</label>
+          <div class="dropdown-btn" id="lessonDropdownBtn">
+            <span id="selectedLessonText">Выберите урок...</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="dropdown-menu" id="lessonDropdownMenu"></div>
         </div>
       </div>
 
-      <!-- Поисковая строка живого поиска -->
+      <!-- Живой поиск -->
       <div class="search-wrapper">
         <span class="search-icon">🔍</span>
-        <input type="text" id="liveSearchInput" placeholder="Поиск урока по теме или ключевому слову..." autocomplete="off">
+        <input type="text" id="liveSearchInput" placeholder="Поиск урока по теме или слову..." autocomplete="off">
         <button id="clearSearchBtn" class="clear-btn" style="display:none;">✕</button>
       </div>
       <div id="searchResults" class="search-dropdown" style="display: none;"></div>
@@ -45,8 +56,8 @@
 
     <!-- Заголовок урока -->
     <div class="lesson-meta">
-      <div id="lessonBadge" class="lesson-badge">Модуль 1</div>
-      <h1 id="lessonHeading">Загрузка уроков...</h1>
+      <div id="lessonBadge" class="lesson-badge">Модуль 1 • Урок 1</div>
+      <h1 id="lessonHeading">Загрузка...</h1>
     </div>
 
     <!-- Вкладки материалов -->
@@ -63,6 +74,6 @@
     </main>
   </div>
 
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=20"></script>
 </body>
 </html>
