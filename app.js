@@ -14,7 +14,7 @@ let currentVideoIdx = 0;
 let currentActiveVideoId = null;
 let activeTab = "hw";
 
-// Элементы
+// DOM
 const monthDropdownBtn = document.getElementById("monthDropdownBtn");
 const selectedMonthText = document.getElementById("selectedMonthText");
 const monthDropdownMenu = document.getElementById("monthDropdownMenu");
@@ -46,7 +46,7 @@ function notify(msg) {
   }
 }
 
-// 1. Инициализация
+// 1. Загрузка данных
 async function init() {
   try {
     const res = await fetch(`${API_BASE}/lessons`);
@@ -81,7 +81,6 @@ async function init() {
   }
 }
 
-// 2. Дропдаун Модулей
 function renderMonthDropdown() {
   monthDropdownMenu.innerHTML = "";
   Array.from(monthsMap.keys()).sort((a, b) => a - b).forEach(m => {
@@ -105,7 +104,6 @@ function selectMonth(m) {
   renderLessonDropdown(m);
 }
 
-// 3. Дропдаун Уроков
 function renderLessonDropdown(m) {
   lessonDropdownMenu.innerHTML = "";
   const lessons = monthsMap.get(m) || [];
@@ -123,7 +121,6 @@ function renderLessonDropdown(m) {
   });
 }
 
-// 4. Выбор урока
 function selectLesson(lesson) {
   currentSelectedLesson = lesson;
   currentVideoIdx = 0;
@@ -136,7 +133,6 @@ function selectLesson(lesson) {
   lessonBadge.textContent = `Модуль ${lesson.monthNumber} • Урок ${lesson.lessonNumber}`;
   lessonHeading.textContent = lesson.title;
 
-  // Видимость вкладок
   const tabPdf = document.querySelector('[data-tab="pdf"]');
   const tabZip = document.querySelector('[data-tab="zip"]');
   if (tabPdf) tabPdf.style.display = lesson.hasPdf ? "inline-block" : "none";
@@ -148,11 +144,10 @@ function selectLesson(lesson) {
     updateTabContent();
   }
 
-  updateVideoPlayer(lesson);
+  updateVideoControls(lesson);
 }
 
-// 5. Плеер видео
-function updateVideoPlayer(lesson) {
+function updateVideoControls(lesson) {
   const videos = lesson.videos || [];
   if (videos.length === 0) {
     videoPlayer.removeAttribute("src");
@@ -178,6 +173,7 @@ function updateVideoPlayer(lesson) {
   const v = videos[currentVideoIdx];
   currentActiveVideoId = v.id;
 
+  // Прямой HTTP-поток прямо в плеер
   videoPlayer.src = `${API_BASE}/video/stream/${v.id}`;
   videoPlayer.load();
 }
@@ -185,7 +181,7 @@ function updateVideoPlayer(lesson) {
 prevPartBtn.onclick = () => {
   if (currentVideoIdx > 0) {
     currentVideoIdx--;
-    updateVideoPlayer(currentSelectedLesson);
+    updateVideoControls(currentSelectedLesson);
   }
 };
 
@@ -193,11 +189,10 @@ nextPartBtn.onclick = () => {
   const vids = currentSelectedLesson?.videos || [];
   if (currentVideoIdx < vids.length - 1) {
     currentVideoIdx++;
-    updateVideoPlayer(currentSelectedLesson);
+    updateVideoControls(currentSelectedLesson);
   }
 };
 
-// 6. Управление кликами меню
 monthDropdownBtn.onclick = (e) => {
   e.stopPropagation();
   lessonDropdownMenu.classList.remove("open");
@@ -216,7 +211,6 @@ document.addEventListener("click", () => {
   searchResults.style.display = "none";
 });
 
-// 7. Вкладки
 function switchTab(name) {
   activeTab = name;
   tabItems.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
@@ -253,7 +247,6 @@ function updateTabContent() {
   }
 }
 
-// 8. Отправка файла в Telegram
 sendActionBtn.onclick = async () => {
   if (!currentSelectedLesson) return;
   let fileId = null;
@@ -266,7 +259,7 @@ sendActionBtn.onclick = async () => {
 
   const uid = tg?.initDataUnsafe?.user?.id;
   if (!uid) {
-    notify("Откройте приложение внутри Telegram, чтобы бот отправил файл в ваш диалог.");
+    notify("Откройте приложение внутри Telegram.");
     return;
   }
 
@@ -289,7 +282,6 @@ sendActionBtn.onclick = async () => {
   }
 };
 
-// 9. Живой поиск в реальном времени с поддержкой опечаток (Fuzzy)
 function fuzzyMatch(pattern, str) {
   pattern = pattern.toLowerCase().trim();
   str = str.toLowerCase();
@@ -356,6 +348,7 @@ clearSearchBtn.onclick = () => {
   searchResults.style.display = "none";
 };
 
+// При закрытии окна Mini App удаляем видео из временного кэша на сервере
 window.addEventListener("pagehide", () => {
   if (currentActiveVideoId) {
     navigator.sendBeacon(`${API_BASE}/video/cleanup?fileId=${currentActiveVideoId}`);
