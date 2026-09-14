@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Образовательная платформа</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css?v=30">
+  <link rel="stylesheet" href="style.css?v=35">
 </head>
 <body>
   <div class="app-container">
+    <!-- Селекторы модуля и урока -->
     <header class="controls-header">
       <div class="selector-row">
         <div class="dropdown-wrapper month-box" id="monthDropdownWrapper">
@@ -30,6 +31,7 @@
         </div>
       </div>
 
+      <!-- Живой поиск -->
       <div class="search-wrapper">
         <span class="search-icon">🔍</span>
         <input type="text" id="liveSearchInput" placeholder="Поиск урока по теме или слову..." autocomplete="off">
@@ -38,35 +40,50 @@
       <div id="searchResults" class="search-dropdown" style="display: none;"></div>
     </header>
 
-    <!-- Полноценный HTML5 плеер, играющий прямо в Mini App -->
+    <!-- Плеер видео -->
     <section class="player-section">
       <div class="video-container">
         <video id="videoPlayer" controls playsinline controlsList="nodownload" preload="metadata"></video>
       </div>
-      <div class="video-parts-bar">
-        <button id="prevPartBtn" class="pill-btn">◀ Часть</button>
-        <span id="partTitle" class="badge">Часть 1/1</span>
-        <button id="nextPartBtn" class="pill-btn">Часть ▶</button>
+      <div class="media-parts-bar" id="videoBar">
+        <button id="prevVideoBtn" class="pill-btn">◀</button>
+        <span id="videoPartTitle" class="badge">Видео: 1/1</span>
+        <button id="nextVideoBtn" class="pill-btn">▶</button>
       </div>
     </section>
 
+    <!-- Заголовок урока -->
     <div class="lesson-meta">
       <div id="lessonBadge" class="lesson-badge">Модуль 1 • Урок 1</div>
       <h1 id="lessonHeading">Загрузка...</h1>
     </div>
 
+    <!-- Вкладки материалов -->
     <nav class="tabs-nav">
       <button class="tab-item active" data-tab="hw">📝 Домашка</button>
-      <button class="tab-item" data-tab="pdf">📄 Конспект PDF</button>
+      <button class="tab-item" data-tab="pdf">📄 Конспекты PDF</button>
       <button class="tab-item" data-tab="zip">📦 Исходный код</button>
     </nav>
 
+    <!-- Контент активной вкладки -->
     <main class="tab-content-area">
-      <div id="hwContent" class="content-box">Выберите урок для просмотра</div>
-      <button id="sendActionBtn" class="action-btn">💬 Отправить в чат</button>
+      <!-- Блок перелистывания файлов текущей вкладки (1/N) -->
+      <div class="sub-parts-bar" id="subPartsBar" style="display: none;">
+        <button id="prevSubPartBtn" class="pill-btn">◀</button>
+        <span id="subPartTitle" class="badge">Файл 1/1</span>
+        <button id="nextSubPartBtn" class="pill-btn">▶</button>
+      </div>
+
+      <div id="fileTitleHeader" class="file-name-label"></div>
+      <div id="mainContentBox" class="content-box">Выберите урок для просмотра</div>
+
+      <div class="action-buttons-row">
+        <button id="openDirectBtn" class="action-btn btn-secondary">👁 Открыть файл</button>
+        <button id="sendActionBtn" class="action-btn btn-primary">💬 Отправить в чат</button>
+      </div>
     </main>
   </div>
 
-  <script src="app.js?v=33"></script>
+  <script src="app.js?v=35"></script>
 </body>
 </html>
