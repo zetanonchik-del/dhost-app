@@ -7,15 +7,22 @@ if (tg) {
 const API_BASE = "https://optimization-idle-contacts-developed.trycloudflare.com/api";
 
 let allLessons = [];
-let monthsMap = new Map(); // monthNumber -> array of lessons
+let monthsMap = new Map();
+let currentMonth = null;
 let currentSelectedLesson = null;
 let currentVideoIdx = 0;
 let currentActiveVideoId = null;
 let activeTab = "hw";
 
-// DOM
-const monthPicker = document.getElementById("monthPicker");
-const lessonPicker = document.getElementById("lessonPicker");
+// Элементы
+const monthDropdownBtn = document.getElementById("monthDropdownBtn");
+const selectedMonthText = document.getElementById("selectedMonthText");
+const monthDropdownMenu = document.getElementById("monthDropdownMenu");
+
+const lessonDropdownBtn = document.getElementById("lessonDropdownBtn");
+const selectedLessonText = document.getElementById("selectedLessonText");
+const lessonDropdownMenu = document.getElementById("lessonDropdownMenu");
+
 const liveSearchInput = document.getElementById("liveSearchInput");
 const clearSearchBtn = document.getElementById("clearSearchBtn");
 const searchResults = document.getElementById("searchResults");
@@ -29,7 +36,6 @@ const lessonBadge = document.getElementById("lessonBadge");
 const lessonHeading = document.getElementById("lessonHeading");
 const hwContent = document.getElementById("hwContent");
 const sendActionBtn = document.getElementById("sendActionBtn");
-
 const tabItems = document.querySelectorAll(".tab-item");
 
 function notify(msg) {
@@ -40,14 +46,13 @@ function notify(msg) {
   }
 }
 
-// 1. Инициализация и группировка по месяцам
+// 1. Инициализация
 async function init() {
   try {
     const res = await fetch(`${API_BASE}/lessons`);
-    if (!res.ok) throw new Error("HTTP error " + res.status);
+    if (!res.ok) throw new Error("HTTP " + res.status);
     allLessons = await res.json();
 
-    // Сортировка по номеру месяца и урока
     allLessons.sort((a, b) => {
       if (a.monthNumber !== b.monthNumber) return a.monthNumber - b.monthNumber;
       return a.lessonNumber - b.lessonNumber;
@@ -60,14 +65,14 @@ async function init() {
       monthsMap.get(m).push(l);
     });
 
-    populateMonthPicker();
+    renderMonthDropdown();
 
     if (monthsMap.size > 0) {
-      const firstMonth = monthsMap.keys().next().value;
-      monthPicker.value = firstMonth;
-      populateLessonPicker(firstMonth);
-      if (monthsMap.get(firstMonth).length > 0) {
-        selectLesson(monthsMap.get(firstMonth)[0]);
+      const firstMonth = Array.from(monthsMap.keys()).sort((a, b) => a - b)[0];
+      selectMonth(firstMonth);
+      const list = monthsMap.get(firstMonth);
+      if (list && list.length > 0) {
+        selectLesson(list[0]);
       }
     }
   } catch (err) {
@@ -76,50 +81,58 @@ async function init() {
   }
 }
 
-function populateMonthPicker() {
-  monthPicker.innerHTML = "";
+// 2. Дропдаун Модулей
+function renderMonthDropdown() {
+  monthDropdownMenu.innerHTML = "";
   Array.from(monthsMap.keys()).sort((a, b) => a - b).forEach(m => {
-    const opt = document.createElement("option");
-    opt.value = m;
-    opt.textContent = `Модуль ${m}`;
-    monthPicker.appendChild(opt);
+    const item = document.createElement("div");
+    item.className = "dropdown-item";
+    item.textContent = `Модуль ${m}`;
+    item.onclick = (e) => {
+      e.stopPropagation();
+      selectMonth(m);
+      monthDropdownMenu.classList.remove("open");
+      const list = monthsMap.get(m) || [];
+      if (list.length > 0) selectLesson(list[0]);
+    };
+    monthDropdownMenu.appendChild(item);
   });
-
-  monthPicker.onchange = (e) => {
-    const m = parseInt(e.target.value, 10);
-    populateLessonPicker(m);
-    const list = monthsMap.get(m) || [];
-    if (list.length > 0) {
-      selectLesson(list[0]);
-    }
-  };
 }
 
-function populateLessonPicker(monthNum) {
-  lessonPicker.innerHTML = "";
-  const lessons = monthsMap.get(monthNum) || [];
+function selectMonth(m) {
+  currentMonth = m;
+  selectedMonthText.textContent = `Модуль ${m}`;
+  renderLessonDropdown(m);
+}
+
+// 3. Дропдаун Уроков
+function renderLessonDropdown(m) {
+  lessonDropdownMenu.innerHTML = "";
+  const lessons = monthsMap.get(m) || [];
+
   lessons.forEach(l => {
-    const opt = document.createElement("option");
-    opt.value = l.id;
-    opt.textContent = `Урок ${l.lessonNumber}: ${l.title}`;
-    lessonPicker.appendChild(opt);
+    const item = document.createElement("div");
+    item.className = "dropdown-item";
+    item.textContent = `Урок ${l.lessonNumber}: ${l.title}`;
+    item.onclick = (e) => {
+      e.stopPropagation();
+      selectLesson(l);
+      lessonDropdownMenu.classList.remove("open");
+    };
+    lessonDropdownMenu.appendChild(item);
   });
-
-  lessonPicker.onchange = (e) => {
-    const targetId = parseInt(e.target.value, 10);
-    const found = allLessons.find(x => x.id === targetId);
-    if (found) selectLesson(found);
-  };
 }
 
-// 2. Выбор конкретного урока
+// 4. Выбор урока
 function selectLesson(lesson) {
   currentSelectedLesson = lesson;
   currentVideoIdx = 0;
 
-  monthPicker.value = lesson.monthNumber;
-  lessonPicker.value = lesson.id;
+  if (currentMonth !== lesson.monthNumber) {
+    selectMonth(lesson.monthNumber);
+  }
 
+  selectedLessonText.textContent = `Урок ${lesson.lessonNumber}: ${lesson.title}`;
   lessonBadge.textContent = `Модуль ${lesson.monthNumber} • Урок ${lesson.lessonNumber}`;
   lessonHeading.textContent = lesson.title;
 
@@ -138,7 +151,7 @@ function selectLesson(lesson) {
   updateVideoPlayer(lesson);
 }
 
-// 3. Воспроизведение видео
+// 5. Плеер видео
 function updateVideoPlayer(lesson) {
   const videos = lesson.videos || [];
   if (videos.length === 0) {
@@ -165,8 +178,7 @@ function updateVideoPlayer(lesson) {
   const v = videos[currentVideoIdx];
   currentActiveVideoId = v.id;
 
-  const streamUrl = `${API_BASE}/video/stream/${v.id}`;
-  videoPlayer.src = streamUrl;
+  videoPlayer.src = `${API_BASE}/video/stream/${v.id}`;
   videoPlayer.load();
 }
 
@@ -185,7 +197,26 @@ nextPartBtn.onclick = () => {
   }
 };
 
-// 4. Вкладки
+// 6. Управление кликами меню
+monthDropdownBtn.onclick = (e) => {
+  e.stopPropagation();
+  lessonDropdownMenu.classList.remove("open");
+  monthDropdownMenu.classList.toggle("open");
+};
+
+lessonDropdownBtn.onclick = (e) => {
+  e.stopPropagation();
+  monthDropdownMenu.classList.remove("open");
+  lessonDropdownMenu.classList.toggle("open");
+};
+
+document.addEventListener("click", () => {
+  monthDropdownMenu.classList.remove("open");
+  lessonDropdownMenu.classList.remove("open");
+  searchResults.style.display = "none";
+});
+
+// 7. Вкладки
 function switchTab(name) {
   activeTab = name;
   tabItems.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
@@ -222,7 +253,7 @@ function updateTabContent() {
   }
 }
 
-// 5. Отправка файла в Telegram
+// 8. Отправка файла в Telegram
 sendActionBtn.onclick = async () => {
   if (!currentSelectedLesson) return;
   let fileId = null;
@@ -258,14 +289,13 @@ sendActionBtn.onclick = async () => {
   }
 };
 
-// 6. Полнотекстовый и Fuzzy поиск в реальном времени
+// 9. Живой поиск в реальном времени с поддержкой опечаток (Fuzzy)
 function fuzzyMatch(pattern, str) {
   pattern = pattern.toLowerCase().trim();
   str = str.toLowerCase();
   if (!pattern) return 1.0;
-  if (str.includes(pattern)) return 0.9;
+  if (str.includes(pattern)) return 0.95;
 
-  // Посимвольный алгоритм нечеткого совпадения
   let pIdx = 0;
   let score = 0;
   for (let i = 0; i < str.length; i++) {
@@ -290,7 +320,7 @@ liveSearchInput.oninput = (e) => {
 
   const results = allLessons
     .map(l => ({ lesson: l, score: fuzzyMatch(query, `${l.title} урок ${l.lessonNumber} модуль ${l.monthNumber}`) }))
-    .filter(item => item.score >= 0.5)
+    .filter(item => item.score >= 0.45)
     .sort((a, b) => b.score - a.score)
     .slice(0, 6);
 
@@ -308,7 +338,8 @@ liveSearchInput.oninput = (e) => {
       <span class="search-item-title">Урок ${lesson.lessonNumber}: ${lesson.title}</span>
       <span class="search-item-sub">Модуль ${lesson.monthNumber}</span>
     `;
-    div.onclick = () => {
+    div.onclick = (ev) => {
+      ev.stopPropagation();
       selectLesson(lesson);
       searchResults.style.display = "none";
       liveSearchInput.value = "";
@@ -324,12 +355,6 @@ clearSearchBtn.onclick = () => {
   clearSearchBtn.style.display = "none";
   searchResults.style.display = "none";
 };
-
-document.addEventListener("click", (e) => {
-  if (!e.target.closest(".search-wrapper") && !e.target.closest("#searchResults")) {
-    searchResults.style.display = "none";
-  }
-});
 
 window.addEventListener("pagehide", () => {
   if (currentActiveVideoId) {
