@@ -4,31 +4,34 @@ if (tg) {
   tg.expand();
 }
 
-// Актуальный адрес туннеля Cloudflare
 const API_BASE = "https://optimization-idle-contacts-developed.trycloudflare.com/api";
 
-let lessonsData = [];
-let currentLessonIdx = 0;
+let allLessons = [];
+let monthsMap = new Map(); // monthNumber -> array of lessons
+let currentSelectedLesson = null;
 let currentVideoIdx = 0;
 let currentActiveVideoId = null;
 let activeTab = "hw";
 
-// DOM элементы
+// DOM
+const monthPicker = document.getElementById("monthPicker");
 const lessonPicker = document.getElementById("lessonPicker");
+const liveSearchInput = document.getElementById("liveSearchInput");
+const clearSearchBtn = document.getElementById("clearSearchBtn");
+const searchResults = document.getElementById("searchResults");
+
 const videoPlayer = document.getElementById("videoPlayer");
-const lessonHeading = document.getElementById("lessonHeading");
-const hwContent = document.getElementById("hwContent");
 const partTitle = document.getElementById("partTitle");
 const prevPartBtn = document.getElementById("prevPartBtn");
 const nextPartBtn = document.getElementById("nextPartBtn");
-const sendActionBtn = document.getElementById("sendActionBtn") || document.querySelector(".action-btn");
 
-// Вкладки
-const tabHw = document.querySelector('[data-tab="hw"]');
-const tabPdf = document.querySelector('[data-tab="pdf"]');
-const tabZip = document.querySelector('[data-tab="zip"]');
+const lessonBadge = document.getElementById("lessonBadge");
+const lessonHeading = document.getElementById("lessonHeading");
+const hwContent = document.getElementById("hwContent");
+const sendActionBtn = document.getElementById("sendActionBtn");
 
-// Нативное уведомление Telegram (без надписи браузера и адреса сайта)
+const tabItems = document.querySelectorAll(".tab-item");
+
 function notify(msg) {
   if (tg && tg.showAlert) {
     tg.showAlert(msg);
@@ -37,62 +40,110 @@ function notify(msg) {
   }
 }
 
-// Инициализация при открытии
+// 1. Инициализация и группировка по месяцам
 async function init() {
   try {
     const res = await fetch(`${API_BASE}/lessons`);
-    if (!res.ok) throw new Error("Network response was not ok");
-    lessonsData = await res.json();
+    if (!res.ok) throw new Error("HTTP error " + res.status);
+    allLessons = await res.json();
 
-    lessonPicker.innerHTML = "";
-    lessonsData.forEach((l, idx) => {
-      const opt = document.createElement("option");
-      opt.value = idx;
-      opt.textContent = `Урок ${l.lessonNumber}: ${l.title}`;
-      lessonPicker.appendChild(opt);
+    // Сортировка по номеру месяца и урока
+    allLessons.sort((a, b) => {
+      if (a.monthNumber !== b.monthNumber) return a.monthNumber - b.monthNumber;
+      return a.lessonNumber - b.lessonNumber;
     });
 
-    lessonPicker.addEventListener("change", (e) => {
-      selectLesson(parseInt(e.target.value, 10));
+    monthsMap.clear();
+    allLessons.forEach(l => {
+      const m = l.monthNumber || 1;
+      if (!monthsMap.has(m)) monthsMap.set(m, []);
+      monthsMap.get(m).push(l);
     });
 
-    if (lessonsData.length > 0) {
-      selectLesson(0);
+    populateMonthPicker();
+
+    if (monthsMap.size > 0) {
+      const firstMonth = monthsMap.keys().next().value;
+      monthPicker.value = firstMonth;
+      populateLessonPicker(firstMonth);
+      if (monthsMap.get(firstMonth).length > 0) {
+        selectLesson(monthsMap.get(firstMonth)[0]);
+      }
     }
   } catch (err) {
-    console.error("Ошибка загрузки данных:", err);
-    if (lessonHeading) lessonHeading.textContent = "Ошибка загрузки данных с сервера";
+    console.error("Ошибка загрузки:", err);
+    lessonHeading.textContent = "Не удалось подключиться к серверу API";
   }
 }
 
-// Выбор урока
-function selectLesson(idx) {
-  currentLessonIdx = idx;
+function populateMonthPicker() {
+  monthPicker.innerHTML = "";
+  Array.from(monthsMap.keys()).sort((a, b) => a - b).forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = `Модуль ${m}`;
+    monthPicker.appendChild(opt);
+  });
+
+  monthPicker.onchange = (e) => {
+    const m = parseInt(e.target.value, 10);
+    populateLessonPicker(m);
+    const list = monthsMap.get(m) || [];
+    if (list.length > 0) {
+      selectLesson(list[0]);
+    }
+  };
+}
+
+function populateLessonPicker(monthNum) {
+  lessonPicker.innerHTML = "";
+  const lessons = monthsMap.get(monthNum) || [];
+  lessons.forEach(l => {
+    const opt = document.createElement("option");
+    opt.value = l.id;
+    opt.textContent = `Урок ${l.lessonNumber}: ${l.title}`;
+    lessonPicker.appendChild(opt);
+  });
+
+  lessonPicker.onchange = (e) => {
+    const targetId = parseInt(e.target.value, 10);
+    const found = allLessons.find(x => x.id === targetId);
+    if (found) selectLesson(found);
+  };
+}
+
+// 2. Выбор конкретного урока
+function selectLesson(lesson) {
+  currentSelectedLesson = lesson;
   currentVideoIdx = 0;
-  const lesson = lessonsData[idx];
 
-  lessonHeading.textContent = `Урок ${lesson.lessonNumber}. ${lesson.title}`;
+  monthPicker.value = lesson.monthNumber;
+  lessonPicker.value = lesson.id;
 
-  // 1. Скрываем вкладки, если файлов нет
-  if (tabPdf) tabPdf.style.display = lesson.hasPdf ? "inline-flex" : "none";
-  if (tabZip) tabZip.style.display = lesson.hasZip ? "inline-flex" : "none";
+  lessonBadge.textContent = `Модуль ${lesson.monthNumber} • Урок ${lesson.lessonNumber}`;
+  lessonHeading.textContent = lesson.title;
 
-  // 2. Если вкладка была на скрытом файле, переключаем на домашку
+  // Видимость вкладок
+  const tabPdf = document.querySelector('[data-tab="pdf"]');
+  const tabZip = document.querySelector('[data-tab="zip"]');
+  if (tabPdf) tabPdf.style.display = lesson.hasPdf ? "inline-block" : "none";
+  if (tabZip) tabZip.style.display = lesson.hasZip ? "inline-block" : "none";
+
   if ((activeTab === "pdf" && !lesson.hasPdf) || (activeTab === "zip" && !lesson.hasZip)) {
     switchTab("hw");
   } else {
     updateTabContent();
   }
 
-  // 3. Обновляем видео и кнопки частей
-  updateVideoControls(lesson);
+  updateVideoPlayer(lesson);
 }
 
-// Управление видео и частями
-function updateVideoControls(lesson) {
+// 3. Воспроизведение видео
+function updateVideoPlayer(lesson) {
   const videos = lesson.videos || [];
   if (videos.length === 0) {
     videoPlayer.removeAttribute("src");
+    videoPlayer.load();
     partTitle.textContent = "Нет видео";
     prevPartBtn.style.display = "none";
     nextPartBtn.style.display = "none";
@@ -100,7 +151,6 @@ function updateVideoControls(lesson) {
     return;
   }
 
-  // Показываем кнопки переключения, только если частей больше одной
   if (videos.length > 1) {
     prevPartBtn.style.display = "inline-block";
     nextPartBtn.style.display = "inline-block";
@@ -114,130 +164,177 @@ function updateVideoControls(lesson) {
   partTitle.textContent = `Часть ${currentVideoIdx + 1}/${videos.length}`;
   const v = videos[currentVideoIdx];
   currentActiveVideoId = v.id;
-  videoPlayer.src = `${API_BASE}/video/stream/${v.id}`;
+
+  const streamUrl = `${API_BASE}/video/stream/${v.id}`;
+  videoPlayer.src = streamUrl;
+  videoPlayer.load();
 }
 
-// Кнопка: Предыдущая часть
-if (prevPartBtn) {
-  prevPartBtn.onclick = () => {
-    if (currentVideoIdx > 0) {
-      currentVideoIdx--;
-      updateVideoControls(lessonsData[currentLessonIdx]);
-    }
-  };
-}
+prevPartBtn.onclick = () => {
+  if (currentVideoIdx > 0) {
+    currentVideoIdx--;
+    updateVideoPlayer(currentSelectedLesson);
+  }
+};
 
-// Кнопка: Следующая часть
-if (nextPartBtn) {
-  nextPartBtn.onclick = () => {
-    const vids = lessonsData[currentLessonIdx].videos || [];
-    if (currentVideoIdx < vids.length - 1) {
-      currentVideoIdx++;
-      updateVideoControls(lessonsData[currentLessonIdx]);
-    }
-  };
-}
+nextPartBtn.onclick = () => {
+  const vids = currentSelectedLesson?.videos || [];
+  if (currentVideoIdx < vids.length - 1) {
+    currentVideoIdx++;
+    updateVideoPlayer(currentSelectedLesson);
+  }
+};
 
-// Переключение вкладок
-function switchTab(tabName) {
-  activeTab = tabName;
-  [tabHw, tabPdf, tabZip].forEach(t => t && t.classList.remove("active"));
-
-  if (tabName === "hw" && tabHw) tabHw.classList.add("active");
-  if (tabName === "pdf" && tabPdf) tabPdf.classList.add("active");
-  if (tabName === "zip" && tabZip) tabZip.classList.add("active");
-
+// 4. Вкладки
+function switchTab(name) {
+  activeTab = name;
+  tabItems.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
   updateTabContent();
 }
 
-// Обновление описания и кнопок
+tabItems.forEach(item => {
+  item.onclick = () => switchTab(item.dataset.tab);
+});
+
 function updateTabContent() {
-  const lesson = lessonsData[currentLessonIdx];
-  if (!lesson) return;
+  if (!currentSelectedLesson) return;
+  const l = currentSelectedLesson;
 
   if (activeTab === "hw") {
-    hwContent.textContent = lesson.homeworkText ? lesson.homeworkText : "Письменное задание к этому уроку отсутствует.";
-    
-    if (sendActionBtn) {
-      // Показываем кнопку отправки ДЗ ТОЛЬКО если есть файл домашки
-      if (lesson.hwFileId) {
-        sendActionBtn.style.display = "block";
-        sendActionBtn.textContent = "💬 Отправить файл ДЗ в чат";
-        sendActionBtn.className = "action-btn btn-blue";
-      } else {
-        sendActionBtn.style.display = "none";
-      }
+    hwContent.textContent = l.homeworkText ? l.homeworkText : "Письменное задание к этому уроку отсутствует.";
+    if (l.hwFileId) {
+      sendActionBtn.style.display = "block";
+      sendActionBtn.textContent = "💬 Отправить файл ДЗ в чат";
+      sendActionBtn.className = "action-btn btn-blue";
+    } else {
+      sendActionBtn.style.display = "none";
     }
   } else if (activeTab === "pdf") {
-    hwContent.textContent = "Конспект урока в формате PDF.";
-    if (sendActionBtn) {
-      sendActionBtn.style.display = lesson.hasPdf ? "block" : "none";
-      sendActionBtn.textContent = "📄 Отправить PDF в чат";
-      sendActionBtn.className = "action-btn btn-red";
-    }
+    hwContent.textContent = "📄 Конспект и методические слайды (PDF к уроку).";
+    sendActionBtn.style.display = l.hasPdf ? "block" : "none";
+    sendActionBtn.textContent = "📄 Отправить PDF в чат";
+    sendActionBtn.className = "action-btn btn-red";
   } else if (activeTab === "zip") {
-    hwContent.textContent = "Архив исходного кода проекта (.ZIP).";
-    if (sendActionBtn) {
-      sendActionBtn.style.display = lesson.hasZip ? "block" : "none";
-      sendActionBtn.textContent = "📦 Отправить ZIP в чат";
-      sendActionBtn.className = "action-btn btn-green";
-    }
+    hwContent.textContent = "📦 Архив исходного кода и готовых проектов (.ZIP).";
+    sendActionBtn.style.display = l.hasZip ? "block" : "none";
+    sendActionBtn.textContent = "📦 Отправить ZIP в чат";
+    sendActionBtn.className = "action-btn btn-green";
   }
 }
 
-if (tabHw) tabHw.onclick = () => switchTab("hw");
-if (tabPdf) tabPdf.onclick = () => switchTab("pdf");
-if (tabZip) tabZip.onclick = () => switchTab("zip");
+// 5. Отправка файла в Telegram
+sendActionBtn.onclick = async () => {
+  if (!currentSelectedLesson) return;
+  let fileId = null;
 
-// Отправка файла в Telegram-чат
-if (sendActionBtn) {
-  sendActionBtn.onclick = async () => {
-    const lesson = lessonsData[currentLessonIdx];
-    let fileIdToSend = null;
+  if (activeTab === "hw") fileId = currentSelectedLesson.hwFileId;
+  if (activeTab === "pdf") fileId = currentSelectedLesson.pdfId;
+  if (activeTab === "zip") fileId = currentSelectedLesson.zipId;
 
-    if (activeTab === "hw") fileIdToSend = lesson.hwFileId;
-    if (activeTab === "pdf") fileIdToSend = lesson.pdfId;
-    if (activeTab === "zip") fileIdToSend = lesson.zipId;
+  if (!fileId) return;
 
-    if (!fileIdToSend) {
-      notify("Файл к данному уроку не прикреплен.");
-      return;
+  const uid = tg?.initDataUnsafe?.user?.id;
+  if (!uid) {
+    notify("Откройте приложение внутри Telegram, чтобы бот отправил файл в ваш диалог.");
+    return;
+  }
+
+  sendActionBtn.disabled = true;
+  const oldText = sendActionBtn.textContent;
+  sendActionBtn.textContent = "Отправка в диалог...";
+
+  try {
+    const res = await fetch(`${API_BASE}/send-to-chat?userId=${uid}&fileId=${fileId}`, { method: "POST" });
+    if (res.ok) {
+      notify("✅ Файл отправлен в чат с ботом!");
+    } else {
+      notify("Ошибка при отправке файла.");
     }
+  } catch (e) {
+    notify("Сетевой сбой при отправке.");
+  } finally {
+    sendActionBtn.disabled = false;
+    sendActionBtn.textContent = oldText;
+  }
+};
 
-    const uid = tg?.initDataUnsafe?.user?.id;
-    if (!uid) {
-      notify("Пожалуйста, откройте приложение внутри Telegram.");
-      return;
+// 6. Полнотекстовый и Fuzzy поиск в реальном времени
+function fuzzyMatch(pattern, str) {
+  pattern = pattern.toLowerCase().trim();
+  str = str.toLowerCase();
+  if (!pattern) return 1.0;
+  if (str.includes(pattern)) return 0.9;
+
+  // Посимвольный алгоритм нечеткого совпадения
+  let pIdx = 0;
+  let score = 0;
+  for (let i = 0; i < str.length; i++) {
+    if (str[i] === pattern[pIdx]) {
+      score++;
+      pIdx++;
+      if (pIdx === pattern.length) break;
     }
-
-    sendActionBtn.disabled = true;
-    const oldText = sendActionBtn.textContent;
-    sendActionBtn.textContent = "Отправка в чат...";
-
-    try {
-      const res = await fetch(`${API_BASE}/send-to-chat?userId=${uid}&fileId=${fileIdToSend}`, {
-        method: "POST"
-      });
-      if (res.ok) {
-        notify("Файл успешно отправлен в диалог с ботом!");
-      } else {
-        notify("Не удалось отправить файл. Попробуйте позже.");
-      }
-    } catch (e) {
-      notify("Сетевая ошибка при отправке.");
-    } finally {
-      sendActionBtn.disabled = false;
-      sendActionBtn.textContent = oldText;
-    }
-  };
+  }
+  return score / pattern.length;
 }
 
-// Автоудаление видео из кэша при закрытии Mini App
+liveSearchInput.oninput = (e) => {
+  const query = e.target.value;
+  clearSearchBtn.style.display = query ? "block" : "none";
+
+  if (!query || query.trim().length < 2) {
+    searchResults.style.display = "none";
+    searchResults.innerHTML = "";
+    return;
+  }
+
+  const results = allLessons
+    .map(l => ({ lesson: l, score: fuzzyMatch(query, `${l.title} урок ${l.lessonNumber} модуль ${l.monthNumber}`) }))
+    .filter(item => item.score >= 0.5)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+
+  if (results.length === 0) {
+    searchResults.innerHTML = `<div class="search-item"><span class="search-item-title">Ничего не найдено</span></div>`;
+    searchResults.style.display = "block";
+    return;
+  }
+
+  searchResults.innerHTML = "";
+  results.forEach(({ lesson }) => {
+    const div = document.createElement("div");
+    div.className = "search-item";
+    div.innerHTML = `
+      <span class="search-item-title">Урок ${lesson.lessonNumber}: ${lesson.title}</span>
+      <span class="search-item-sub">Модуль ${lesson.monthNumber}</span>
+    `;
+    div.onclick = () => {
+      selectLesson(lesson);
+      searchResults.style.display = "none";
+      liveSearchInput.value = "";
+      clearSearchBtn.style.display = "none";
+    };
+    searchResults.appendChild(div);
+  });
+  searchResults.style.display = "block";
+};
+
+clearSearchBtn.onclick = () => {
+  liveSearchInput.value = "";
+  clearSearchBtn.style.display = "none";
+  searchResults.style.display = "none";
+};
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".search-wrapper") && !e.target.closest("#searchResults")) {
+    searchResults.style.display = "none";
+  }
+});
+
 window.addEventListener("pagehide", () => {
   if (currentActiveVideoId) {
     navigator.sendBeacon(`${API_BASE}/video/cleanup?fileId=${currentActiveVideoId}`);
   }
 });
 
-// Запуск
 init();
