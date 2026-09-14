@@ -36,7 +36,6 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  position: relative;
 }
 
 .controls-header {
@@ -90,10 +89,6 @@ body {
   gap: 6px;
 }
 
-.dropdown-btn:hover {
-  background: var(--card-hover);
-}
-
 .dropdown-btn span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -124,11 +119,6 @@ body {
   z-index: 200;
 }
 
-.lesson-box .dropdown-menu {
-  width: 100%;
-  max-width: 100%;
-}
-
 .dropdown-menu.open {
   display: block;
 }
@@ -151,7 +141,6 @@ body {
 .dropdown-item:hover, .dropdown-item.selected {
   background: var(--card-hover);
   color: #fff;
-  font-weight: 600;
 }
 
 .search-wrapper {
@@ -166,7 +155,6 @@ body {
   left: 10px;
   font-size: 13px;
   opacity: 0.6;
-  pointer-events: none;
 }
 
 #liveSearchInput {
@@ -178,10 +166,6 @@ body {
   color: #fff;
   font-size: 13px;
   outline: none;
-}
-
-#liveSearchInput:focus {
-  border-color: var(--accent-blue);
 }
 
 .clear-btn {
@@ -212,17 +196,6 @@ body {
   padding: 10px 14px;
   border-bottom: 1px solid #2a2b33;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.search-item:last-child {
-  border-bottom: none;
-}
-
-.search-item:hover {
-  background: var(--card-hover);
 }
 
 .search-item-title {
@@ -243,32 +216,37 @@ body {
 
 .video-container {
   width: 100%;
-  position: relative;
   background: #000;
 }
 
 video {
   width: 100%;
-  max-height: 48vh;
+  max-height: 45vh;
   aspect-ratio: 16 / 9;
   display: block;
 }
 
-.video-parts-bar {
+.media-parts-bar, .sub-parts-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 14px;
-  background: #131417;
+  padding: 7px 14px;
+  background: #141518;
   border-bottom: 1px solid var(--border-color);
+}
+
+.sub-parts-bar {
+  background: #1a1c22;
+  border-radius: 8px;
+  margin-bottom: 10px;
 }
 
 .pill-btn {
   background: var(--card-alt);
   color: #fff;
   border: 1px solid var(--border-color);
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 5px 12px;
+  border-radius: 7px;
   font-size: 12px;
   cursor: pointer;
 }
@@ -281,7 +259,7 @@ video {
 .badge {
   font-size: 12px;
   color: var(--text-muted);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .lesson-meta {
@@ -335,6 +313,13 @@ video {
   flex-direction: column;
 }
 
+.file-name-label {
+  font-size: 13px;
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
 .content-box {
   background: var(--card-bg);
   padding: 14px;
@@ -345,23 +330,32 @@ video {
   color: #d8d8de;
   white-space: pre-wrap;
   word-break: break-word;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   flex: 1;
 }
 
-.action-btn {
-  width: 100%;
-  padding: 13px;
-  border-radius: 12px;
-  border: none;
-  background: var(--accent-blue);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
+.action-buttons-row {
+  display: flex;
+  gap: 10px;
 }
 
-.btn-blue { background: var(--accent-blue); color: #fff; }
-.btn-red { background: var(--accent-red); color: #fff; }
-.btn-green { background: var(--accent-green); color: #000; }
+.action-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #2c2f3a;
+  color: #fff;
+  border: 1px solid var(--border-color);
+}
