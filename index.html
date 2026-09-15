@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Образовательная платформа</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Встроенный просмотрщик PDF через PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
-  <link rel="stylesheet" href="style.css?v=38">
+  <link rel="stylesheet" href="style.css?v=40">
 </head>
 <body>
   <div class="app-container">
@@ -34,7 +33,7 @@
 
       <div class="search-wrapper">
         <span class="search-icon">🔍</span>
-        <input type="text" id="liveSearchInput" placeholder="Поиск урока по теме или слову..." autocomplete="off">
+        <input type="text" id="liveSearchInput" placeholder="Поиск урока по теме..." autocomplete="off">
         <button id="clearSearchBtn" class="clear-btn" style="display:none;">✕</button>
       </div>
       <div id="searchResults" class="search-dropdown" style="display: none;"></div>
@@ -56,7 +55,7 @@
       <h1 id="lessonHeading">Загрузка...</h1>
     </div>
 
-    <!-- Вкладки (автоматически скрываются, если материалов нет) -->
+    <!-- Вкладки, которые будут скрываться при отсутствии контента -->
     <nav class="tabs-nav" id="tabsNav">
       <button class="tab-item active" id="tabHw" data-tab="hw">📝 Домашка</button>
       <button class="tab-item" id="tabPdf" data-tab="pdf">📄 Конспекты PDF</button>
@@ -71,7 +70,7 @@
       </div>
 
       <div id="fileTitleHeader" class="file-name-label"></div>
-      <div id="mainContentBox" class="content-box">Выберите урок для просмотра</div>
+      <div id="mainContentBox" class="content-box"></div>
 
       <div class="action-buttons-row">
         <button id="openDirectBtn" class="action-btn btn-secondary">👁 Открыть файл</button>
@@ -80,7 +79,7 @@
     </main>
   </div>
 
-  <!-- Модальное окно для прямого чтения PDF внутри Mini App -->
+  <!-- Модальное окно встроенного PDF -->
   <div id="pdfModal" class="pdf-modal" style="display: none;">
     <div class="pdf-modal-header">
       <span id="pdfModalTitle" class="pdf-modal-title">Конспект PDF</span>
@@ -97,6 +96,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=40"></script>
+  <script src="app.js?v=41"></script>
 </body>
 </html>
