@@ -4,7 +4,7 @@ if (tg) {
   tg.expand();
 }
 
-// Замените на постоянный домен вашего сервера
+// Замените адрес на постоянный домен вашего туннеля
 const API_BASE = "https://optimization-idle-contacts-developed.trycloudflare.com/api";
 
 let allLessons = [];
@@ -19,7 +19,6 @@ let currentZipIdx = 0;
 let currentHwFileIdx = 0;
 let activeTab = "hw";
 
-// Локализация для 3 языков
 const I18N = {
   ru: {
     module: "Модуль:",
@@ -114,7 +113,6 @@ function t(key) {
   return I18N[currentLang]?.[key] || I18N.ru[key] || key;
 }
 
-// Элементы интерфейса
 const lblModule = document.getElementById("lblModule");
 const lblLesson = document.getElementById("lblLesson");
 const monthDropdownBtn = document.getElementById("monthDropdownBtn");
@@ -174,7 +172,6 @@ function notify(msg) {
 }
 
 async function init() {
-  // Синхронизируем язык с Telegram ботом
   const uid = tg?.initDataUnsafe?.user?.id;
   try {
     const langRes = await fetch(`${API_BASE}/user-lang?userId=${uid || ""}`);
@@ -294,7 +291,6 @@ function selectLesson(lesson) {
   updateTabContent();
 }
 
-// Скрытие вкладок, если материалы отсутствуют
 function updateTabsVisibility(lesson) {
   const hasHw = lesson.hasHw;
   const hasPdf = lesson.hasPdf;
@@ -304,7 +300,6 @@ function updateTabsVisibility(lesson) {
   tabPdf.style.display = hasPdf ? "block" : "none";
   tabZip.style.display = hasZip ? "block" : "none";
 
-  // Если текущая вкладка скрыта — переключаемся на первую доступную
   if (activeTab === "hw" && !hasHw) {
     if (hasPdf) switchTab("pdf");
     else if (hasZip) switchTab("zip");
@@ -440,7 +435,6 @@ nextSubPartBtn.onclick = () => {
   updateTabContent();
 };
 
-// Открытие файла: PDF рендерится внутри WebApp
 openDirectBtn.onclick = () => {
   const l = currentSelectedLesson;
   if (!l) return;
@@ -466,7 +460,6 @@ openDirectBtn.onclick = () => {
   if (isPdf) {
     openEmbeddedPdf(url, fileObj.title);
   } else {
-    // Архивы ZIP скачиваем через браузер
     if (tg && tg.openLink) {
       tg.openLink(url);
     } else {
@@ -475,7 +468,6 @@ openDirectBtn.onclick = () => {
   }
 };
 
-// Логика встроенного просмотра PDF (PDF.js)
 async function openEmbeddedPdf(pdfUrl, title) {
   pdfModal.style.display = "flex";
   pdfModalTitle.textContent = title;
@@ -526,7 +518,7 @@ pdfPrevPage.onclick = () => {
   }
 };
 
-nextSubPartBtn.onclick = () => {
+pdfNextPage.onclick = () => {
   if (currentPdfDoc && currentPdfPage < currentPdfDoc.numPages) {
     currentPdfPage++;
     renderPdfPage(currentPdfPage);
@@ -538,7 +530,6 @@ closePdfModal.onclick = () => {
   currentPdfDoc = null;
 };
 
-// Отправка файла в Telegram-чат
 sendActionBtn.onclick = async () => {
   const l = currentSelectedLesson;
   if (!l) return;
