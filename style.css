@@ -359,3 +359,71 @@ video {
   color: #fff;
   border: 1px solid var(--border-color);
 }
+
+/* Модальное окно просмотра PDF внутри приложения */
+.pdf-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(14, 15, 18, 0.98);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-modal-header {
+  padding: 10px 14px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pdf-modal-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 50%;
+}
+
+.pdf-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.close-btn {
+  background: #3a1c1c;
+  color: #ff453a;
+  border-color: #ff453a;
+}
+
+.pdf-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+}
+
+.pdf-loading {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-top: 40px;
+}
+
+#pdfCanvas {
+  max-width: 100%;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  border-radius: 4px;
+}
